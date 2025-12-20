@@ -1,7 +1,9 @@
 use reqwest::blocking::get;
 use serde_json::Value;
 use std::env;
+use std::fs;
 use std::io::{self, Write};
+use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let artist = env::args().nth(1).unwrap_or_else(|| {
@@ -46,6 +48,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         albums.push(item);
     }
+
+    // Download album covers
+    for album in &albums {
+        if let (Some(artist_name), Some(album_name), Some(artwork_url)) = (
+            album["artistName"].as_str(),
+            album["collectionName"].as_str(),
+            album["artworkUrl"].as_str(),
+        ) {
+            // Create directory structure
+            let album_dir = Path::new("Artists")
+                .join(sanitize_filename(artist_name))
+                .join(sanitize_filename(album_name));
+            fs::create_dir_all(&album_dir)?;
+
+            // Download cover image
+            let cover_path = album_dir.join("cover.jpg");
+            println!("Downloading cover for {} - {}", artist_name, album_name);
+
+            let response = get(artwork_url)?;
+            let bytes = response.bytes()?;
+            fs::write(&cover_path, bytes)?;
+
+            println!("Saved: {}", cover_path.display());
+        }
+    }
+
     println!("{}", serde_json::to_string_pretty(&albums)?);
     Ok(())
+}
+
+fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
+            _ => c,
+        })
+        .collect::<String>()
+        .trim()
+        .to_string()
 }
