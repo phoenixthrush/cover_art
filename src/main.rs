@@ -37,6 +37,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .cloned()
         .unwrap_or_default()
     {
+        // Filter albums by exact artist name match
+        if let Some(album_artist) = item["artistName"].as_str() {
+            if album_artist.to_lowercase() != artist.to_lowercase() {
+                continue; // Skip albums where artist name doesn't match exactly
+            }
+        } else {
+            continue; // Skip if no artist name found
+        }
+
         if let Some(url) = item["artworkUrl100"].as_str() {
             let path = url.split("/image/thumb/").nth(1).unwrap_or("");
             let mut parts: Vec<&str> = path.split('/').collect();
@@ -49,7 +58,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         albums.push(item);
     }
 
+    // Print JSON first
+    println!("{}", serde_json::to_string_pretty(&albums)?);
+
     // Download album covers
+    let album_count = albums
+        .iter()
+        .filter(|album| album["collectionName"].as_str().is_some())
+        .count();
+    let mut current_album = 1;
+
     for album in &albums {
         if let (Some(artist_name), Some(album_name), Some(artwork_url)) = (
             album["artistName"].as_str(),
@@ -64,17 +82,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Download cover image
             let cover_path = album_dir.join("cover.jpg");
-            println!("Downloading cover for {} - {}", artist_name, album_name);
+            println!(
+                "[{}/{}] Downloading cover for {} - {}",
+                current_album, album_count, artist_name, album_name
+            );
 
             let response = get(artwork_url)?;
             let bytes = response.bytes()?;
             fs::write(&cover_path, bytes)?;
 
-            println!("Saved: {}", cover_path.display());
+            println!(
+                "[{}/{}] Saved: {}",
+                current_album,
+                album_count,
+                cover_path.display()
+            );
+            current_album += 1;
         }
     }
-
-    println!("{}", serde_json::to_string_pretty(&albums)?);
     Ok(())
 }
 
