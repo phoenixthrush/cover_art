@@ -1,4 +1,5 @@
 # cover_art
+
 Fetches Apple Music album artwork in maximum available resolution
 
 ## Usage
@@ -16,3 +17,7 @@ cargo run --release "Artist Name" -o "Music"
 
 - `<ARTIST>`: Artist name to search for (required)
 - `-o, --output <FOLDER>`: Output directory for artist folders (default: Artists)
+
+## License
+
+This project is released into the public domain under the Unlicense. See the LICENSE file for details.
