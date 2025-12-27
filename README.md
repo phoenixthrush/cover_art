@@ -1,6 +1,6 @@
 # cover_art
 
-Fetches Apple Music album artwork in maximum available resolution
+Fetches high-resolution album artwork from Apple Music by searching for an artist and downloading all their albums in maximum available quality
 
 ## Usage
 
