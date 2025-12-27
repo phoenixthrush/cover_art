@@ -1,18 +1,33 @@
+use clap::Parser;
 use reqwest::blocking::get;
 use serde_json::Value;
-use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 
+#[derive(Parser)]
+#[command(name = "cover_art")]
+#[command(about = "Download album cover art for a given artist")]
+struct Cli {
+    /// Artist name to search for
+    artist: String,
+
+    /// Output directory for artist folders (default: Artists)
+    #[arg(short, long, default_value = "Artists")]
+    output: String,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let artist = env::args().nth(1).unwrap_or_else(|| {
+    let cli = Cli::parse();
+    let artist = if cli.artist.is_empty() {
         print!("Enter artist name: ");
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         input.trim().to_string()
-    });
+    } else {
+        cli.artist
+    };
 
     let search_url = format!(
         "https://itunes.apple.com/search?term={}&entity=musicArtist&limit=1",
@@ -75,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             album["artworkUrl"].as_str(),
         ) {
             // Create directory structure
-            let album_dir = Path::new("Artists")
+            let album_dir = Path::new(&cli.output)
                 .join(sanitize_filename(artist_name))
                 .join(sanitize_filename(album_name));
             fs::create_dir_all(&album_dir)?;
